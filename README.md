@@ -26,9 +26,9 @@ Dev. version of ParNMPC
 >> mex -setup
 ```
 
-2. Navigate to the *Quadrotor/* folder.
+2. Navigate to *SemiActiveDamper/*.
 ``` Matlab
->> cd  Quadrotor/
+>> cd  SemiActiveDamper/
 ```
 
 3. Open `NMPC_Problem_Formulation.m` and run. 
