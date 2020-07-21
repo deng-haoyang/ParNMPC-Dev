@@ -70,6 +70,7 @@ KKT_xOpt   = 1;
 KKT_yOpt   = 1;
 dt         = T/N;
 cost       = 0;
+iterations = 1;
 KKT_eq     = 0;
 KKT_ineq   = 0;
 KKT_comp   = 0;
@@ -94,6 +95,7 @@ for iter=1:maxIterations
     end
     
     cost       = sum(KKT.L);
+    iterations = iter;
     KKT_eq     = max([norm(KKT.xEq,Inf),norm(KKT.yEq,Inf)]);
     KKT_ineq   = max(norm(KKT.sEq,Inf));
     KKT_uOpt   = norm(KKT.Hu,Inf);
@@ -122,7 +124,6 @@ for iter=1:maxIterations
     end
 end
 %% print info
-iterations = iter;
 if coder.target('MATLAB')
     if printLevel == 1
         disp(printHeader);
