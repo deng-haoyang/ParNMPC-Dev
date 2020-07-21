@@ -1,7 +1,4 @@
 function [solution,output] = NMPC_Solve_Wrapper(x0,p,solutionInitGuess,options)
-[uDim,N] = size(solutionInitGuess.u);
-[xDim,~] = size(solutionInitGuess.x);
-[pDim,~] = size(p);
 %% options
 coder.cstructname(options, 'SolverOptions', 'extern', 'HeaderFile', 'NMPC_Solve_types.h');
 %% solution_c
@@ -20,6 +17,9 @@ if ~isempty(solutionInitGuess.mul_G)
 end
 coder.cstructname(solution_c, 'Solution', 'extern', 'HeaderFile', 'NMPC_Solve_types.h');
 %% output
+[uDim,N] = size(solutionInitGuess.u);
+[xDim,~] = size(solutionInitGuess.x);
+[pDim,~] = size(p);
 output = createStruct_output(uDim,xDim);
 coder.cstructname(output,'Output', 'extern', 'HeaderFile', 'NMPC_Solve_types.h'); 
 %%
