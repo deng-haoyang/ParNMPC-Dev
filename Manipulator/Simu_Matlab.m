@@ -27,7 +27,7 @@ for t=0:Ts:5
     % optimal control input
     uOpt = solution.u(:,1);
     
-    % simulation
+    % simulation (based on MATLAB robotics toolbox, slow)
     x0 = sysSimu(uOpt,x0,p(:,1),Ts,1); % x(t) to x(t+ts)
 
     % log
