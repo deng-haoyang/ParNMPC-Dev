@@ -16,7 +16,7 @@ solution.x = [x0,zeros(OCP.dim.x,1)];
 solution = solutionInterp(x0,p,solution);
 % solve 
 [solution,output] = NMPC_Solve(x0,p,solution,solverOptions);
-%% 
+%% Generate all: C code, mex interface, simulink interface, initial functions
 codegenOptions = createCodegenOptions();
 % generate C code
 codegenOptions.targetLang    = 'C';
@@ -26,7 +26,10 @@ codegenOptions.MEX_buildMEXInterface = true;
 
 % (optional) generate initial functions for solution
 codegenOptions.solution_init = solution;
-codegenOptions.x0_init       = [];
-codegenOptions.p_init        = [];
+codegenOptions.x0_init       = x0;
+codegenOptions.p_init        = p;
+
+% (optional) generate simulink interface
+codegenOptions.generateSimulinkInterface = true;
 
 NMPC_Solve_CodeGen(OCP,solverOptions,codegenOptions);

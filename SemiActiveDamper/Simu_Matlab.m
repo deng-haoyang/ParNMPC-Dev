@@ -26,5 +26,5 @@ for t=0:Ts:20
     rec.u(step,:)   = uOpt.';
     rec.x(step+1,:) = x0.';
     rec.iter(step,:)= output.iterations; 
-    rec.t(step)     = output.cpuTime*1e6; % computation time in us
+    rec.t(step,:)     = output.cpuTime*1e6; % computation time in us
 end
