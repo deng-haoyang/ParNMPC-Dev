@@ -24,15 +24,13 @@ if isempty(codegenOptions.solution_init)
     solution.mul_f = zeros(xDim,N);
     solution.mul_h = zeros(yDim,N);
     solution.mul_G = zeros(GDim,N);
-    solution.s = zeros(GDim,N);
+    solution.s = ones(GDim,N);
 else
     solution = codegenOptions.solution_init;
     % interpolation
     solution = solutionInterp(x0,p,solution);
 end
 %% generate source files for NMPC_Solve
-% solverOptions.timing = 
-% solverOptions.OCP = coder.Constant(solverOptions.OCP);
 args = {x0,p,solution,solverOptions};
 globals = {'timing', coder.Constant(solverOptions.timing),...
            'N',coder.Constant(solverOptions.N),...
@@ -42,7 +40,7 @@ supportNonFinite        = codegenOptions.supportNonFinite;
 dynamicMemoryAllocation = codegenOptions.dynamicMemoryAllocation;
 generateReport          = codegenOptions.generateReport;
 isCppNamespace          = codegenOptions.cppNamespace;
-
+% mex
 buildMEXInterface       = codegenOptions.MEX_buildMEXInterface;
 postCodeGenCommand      = codegenOptions.MEX_postCodeGenCommand;
 customHeaderCode        = codegenOptions.MEX_customHeaderCode;
@@ -51,7 +49,10 @@ customLibrary           = codegenOptions.MEX_customLibrary;
 customSourceCode        = codegenOptions.MEX_customSourceCode;
 customTerminator        = codegenOptions.MEX_customTerminator;
 stackUsageMax           = codegenOptions.MEX_stackUsageMax;  %(OCP.dim.x + OCP.dim.u)*20/360*10000;
+% simulink
+generateSimulinkInterface = codegenOptions.generateSimulinkInterface;
 
+%
 cfg = coder.config('lib');
 cfg.FilePartitionMethod     = 'SingleFile';
 cfg.BuildConfiguration      = 'Faster Runs';
@@ -62,7 +63,7 @@ cfg.EnableOpenMP            = true;
 cfg.PreserveVariableNames   = 'UserNames';
 cfg.GenCodeOnly             = true;
 cfg.GenerateComments        = false;
-cppNamespace = [];
+cppNamespace                = '';
 if isCppNamespace
     if verLessThan('matlab','9.7')
         % ver < MATLAB R2019b
@@ -71,11 +72,11 @@ if isCppNamespace
     else
         switch targetLang
             case 'C'
-                cppNamespace            = [];
+                cppNamespace            = '';
             case 'C++'
                 cppNamespace            = OCP.projectName;
                 cfg.CppNamespace        = cppNamespace;
-                cfg.HeaderGuardStyle    = 'UsePragmaOnce';
+%                 cfg.HeaderGuardStyle    = 'UsePragmaOnce';
         end
     end
 end
@@ -96,7 +97,8 @@ switch targetLang
         srcType = 'cpp';
 end
 codegenPath = OCP.path.codegen;
-delete([codegenPath,'/*']);
+[~,~,~] =rmdir(codegenPath,'s');
+% delete([codegenPath,'/*']);
 [~,~,~] = mkdir(codegenPath);
 [~,~,~] = copyfile('./codegen/lib/NMPC_Solve/*.h',codegenPath);
 [~,~,~] = copyfile(['./codegen/lib/NMPC_Solve/*.',srcType],codegenPath);
@@ -141,48 +143,77 @@ if ~isempty(codegenOptions.solution_init)
     [~,~,~] = copyfile(['./codegen/lib/init_solution/*.',srcType],codegenPath);
 end
 disp(['Done! All source files of the NMPC controller have been successfully generated to ',codegenPath]);
+disp(' ');
+%% generate simulink interface
+if  isempty(cppNamespace)
+    namespacestd = ' ';
+else
+    namespacestd = ['using namespace ',cppNamespace,';'];
+end
+if generateSimulinkInterface
+    disp('Generating Simulink interface...');
+    if isempty(codegenOptions.solution_init)
+        disp('Failed! Simulink interface requires a non-empty initial solution (solution_init)!');
+        disp(' ');
+    else
+        createStruct_NonEmptySolution_codegen(OCP,N);
+        if ~verLessThan('matlab','9.7')
+            cfg.CppNamespace = '';
+        end
+        cfg.CustomHeaderCode   = sprintf('%s\n\r%s\n\r%s',...
+                                         '#include "NMPC_Solve.h"',...
+                                         '#include "init_solution.h"',...
+                                         namespacestd);
+        cfg.CustomSourceCode   = namespacestd;
+        cfg.GenerateReport     = false;
+
+        args = {x0,p,solverOptions};
+    %     -globals {'solutionInit', solution} 
+        codegen  -config cfg  -args args ...
+                 NMPC_Solve_WithInitSolution
+        [~,~,~] = copyfile('./codegen/lib/NMPC_Solve_WithInitSolution/*.h',[codegenPath,'/simulink']);
+        [~,~,~] = copyfile(['./codegen/lib/NMPC_Solve_WithInitSolution/*.',srcType],[codegenPath,'/simulink']);
+
+        disp('Done! Simulink interface has been successfully generated!');
+        disp(' ');
+    end
+end
 %% try to generate mex interface for NMPC_Solve
 if buildMEXInterface 
-    if  isempty(cppNamespace)
-        disp('Trying to generate mex interface for NMPC_Solve...');
-        args = {x0,p,solution,solverOptions}; 
-        cfg = coder.config('mex');
-        cfg.GenerateReport       = false;
-        cfg.LaunchReport         = false;
-        cfg.IntegrityChecks      = false;
-        cfg.ExtrinsicCalls       = false;
-        cfg.ResponsivenessChecks = false;
-        cfg.TargetLang           = targetLang;
-        cfg.StackUsageMax        = stackUsageMax;
-        cfg.GlobalDataSyncMethod = 'NoSync';
-        cfg.DynamicMemoryAllocation = dynamicMemoryAllocation;
-        
-        cfg.CustomHeaderCode   = customHeaderCode;
-        cfg.CustomInclude      = [OCP.path.codegen]; % also in postCodeGenCommand 
-        cfg.CustomInitializer  = customInitializer;
+    disp('Trying to generate mex interface for NMPC_Solve...');
+    args = {x0,p,solution,solverOptions}; 
+    cfg_mex = coder.config('mex');
+    cfg_mex.GenerateReport       = false;
+    cfg_mex.LaunchReport         = false;
+    cfg_mex.IntegrityChecks      = false;
+    cfg_mex.ExtrinsicCalls       = false;
+    cfg_mex.ResponsivenessChecks = false;
+    cfg_mex.TargetLang           = targetLang;
+    cfg_mex.StackUsageMax        = stackUsageMax;
+    cfg_mex.GlobalDataSyncMethod = 'NoSync';
+    cfg_mex.DynamicMemoryAllocation = dynamicMemoryAllocation;
+    cfg_mex.CustomHeaderCode   = sprintf('%s\n\r%s',customHeaderCode,namespacestd);
+    cfg_mex.CustomInclude      = [OCP.path.codegen]; % also in postCodeGenCommand 
+    cfg_mex.CustomInitializer  = customInitializer;
+    cfg_mex.CustomLibrary      = customLibrary;
+    % cfg_mex.CustomSource % in postCodeGenCommand
+    cfg_mex.CustomSourceCode   = sprintf('%s\n\r%s',customSourceCode,namespacestd);
+    cfg_mex.CustomTerminator   = customTerminator;
 
-        cfg.CustomLibrary      = customLibrary;
-        % cfg.CustomSource % in postCodeGenCommand
-        cfg.CustomSourceCode   = customSourceCode;
-        cfg.CustomTerminator   = customTerminator;
+    cfg_mex.PostCodeGenCommand = postCodeGenCommand;
 
-        cfg.PostCodeGenCommand = postCodeGenCommand;
-        
-        myModelBuildInfo = RTW.BuildInfo;
-        addCompileFlags(myModelBuildInfo,'-O3','OPTS');
+    myModelBuildInfo = RTW.BuildInfo;
+    addCompileFlags(myModelBuildInfo,'-O3','OPTS');
 
-        if isempty(timerSrc)
-            cfg.CustomSource  = [OCP.path.codegen,'/NMPC_Solve.',srcType];
-        else
-            cfg.CustomSource  = [OCP.path.codegen,'/NMPC_Solve.',srcType, pathsep, OCP.path.codegen,'/',timerSrc];
-        end
-        try
-            codegen -config cfg NMPC_Solve_Wrapper -args args
-            disp('Done! MEX interface has been successfully generated as NMPC_Solve_Wrapper_mex!');
-        catch
-            disp('Failed building MEX interface!');
-        end
+    if isempty(timerSrc)
+        cfg_mex.CustomSource  = [OCP.path.codegen,'/NMPC_Solve.',srcType];
     else
-        warning('MEX interface cannot be generated when cppNameSpace is enabled');
+        cfg_mex.CustomSource  = [OCP.path.codegen,'/NMPC_Solve.',srcType, pathsep, OCP.path.codegen,'/',timerSrc];
+    end
+    try
+        codegen -config cfg_mex -args args NMPC_Solve_Wrapper
+        disp('Done! MEX interface has been successfully generated as NMPC_Solve_Wrapper_mex!');
+    catch
+        disp('Failed building MEX interface!');
     end
 end

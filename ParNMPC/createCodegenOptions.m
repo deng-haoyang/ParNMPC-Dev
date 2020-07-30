@@ -5,8 +5,10 @@ options.dynamicMemoryAllocation = 'off';
 options.supportNonFinite  = false;
 options.generateReport    = false;
 options.cppNamespace      = false;
+%% simulink interface generation
+options.generateSimulinkInterface = false;
 %% mex interface generation
-options.MEX_buildMEXInterface = true;
+options.MEX_buildMEXInterface = false;
 options.MEX_customHeaderCode   = '';
 options.MEX_customInitializer  = '';
 options.MEX_customLibrary      = '';
@@ -17,9 +19,7 @@ options.MEX_stackUsageMax      = 200000;
 %% init function generation
 % generate function to initialize solution?
 options.solution_init = [];
-
 % generate function to initialize p?
-options.p_init = [];
-
+options.p_init        = [];
 % generate function to initialize x0?
-options.x0_init = [];
+options.x0_init       = [];
