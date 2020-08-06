@@ -52,7 +52,7 @@ G = [tau + 50;...
      qdot + pi/2  + slack;...
     -qdot + pi/2  + slack];
 
-% psi(xN,yN,pN) = 0 (terminal constraint)
+% psi(uN,xN,yN,pN) = 0 (terminal constraint)
 psi = [];
 %%
 OCP.set('L',L);

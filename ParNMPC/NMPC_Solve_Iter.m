@@ -60,7 +60,7 @@ xPrev = [x0,x(:,1:end-1)];
 lambdaNext = [lambda(:,2:end),zeros(xDim,1)];
 %% 
 LAMBDA   = zeros(xDim+uDim,xDim+uDim);
-psi      = func_psi(x(:,N),y(:,N),p(:,N));
+psi      = func_psi(u(:,N),x(:,N),y(:,N),p(:,N));
 psix_bar = zeros(psiDim,xDim);
 psiu_bar = zeros(psiDim,uDim);
 psi_bar  = zeros(psiDim,1);
@@ -105,10 +105,10 @@ for i=N:-1:1
 
     % terminal constraint psi(x,y,p) = 0
     if i == N
-        psi_bar  = psi - func_Jv_psiytimesv(x_i,y_i,p_i,y_i+ Y);
+        psi_bar  = psi - func_Jv_psiytimesv(u_i,x_i,y_i,p_i,y_i+ Y);
         
-        psiu_bar = func_psiu_m_psiyYu(x_i,y_i,p_i,Yu);
-        psix_bar = func_psix_m_psiyYx(x_i,y_i,p_i,Yx);
+        psiu_bar = func_psiu_m_psiyYu(u_i,x_i,y_i,p_i,Yu);
+        psix_bar = func_psix_m_psiyYx(u_i,x_i,y_i,p_i,Yx);
         
         HxT_bar = HxT_bar + 1/delta_psi*(psix_bar.'*psi_bar);
         HuT_bar = HuT_bar + 1/delta_psi*(psiu_bar.'*psi_bar);
@@ -204,9 +204,10 @@ for i=1:1:N
     ds = (z_i - rho./s_i - dz)./Sigma;
     % dgamma
     if i == N
-        psiu_Bartimesdu = -func_Jv_psiytimesv(x_i,y_i,p_i,Yutimesdu);
-        psix_Bartimesdx =  func_Jv_psixtimesv(x_i,y_i,p_i,dx)...
-                          -func_Jv_psiytimesv(x_i,y_i,p_i,Yxtimesdx);
+        psiu_Bartimesdu = func_Jv_psiutimesv(u_i,x_i,y_i,p_i,du)...
+                         -func_Jv_psiytimesv(u_i,x_i,y_i,p_i,Yutimesdu);
+        psix_Bartimesdx = func_Jv_psixtimesv(u_i,x_i,y_i,p_i,dx)...
+                         -func_Jv_psiytimesv(u_i,x_i,y_i,p_i,Yxtimesdx);
         dgamma   = 1/delta_psi*(psix_Bartimesdx +  psiu_Bartimesdu - psi_bar);
         gammaNew = gamma - dgamma;
     end
@@ -218,8 +219,9 @@ for i=1:1:N
     Hyydy = func_Jv_Hyytimesv(u_i,x_i,y_i,p_i,z_i,delta_y,dy);
     domega = HyT_All(:,i) + GyTdz  - Hyudu - Hyxdx - Hyydy;
     if i == N
-        domega   = domega - func_JTv_psiyTtimesv(x_i,y_i,p_i,dgamma);
+        domega   = domega - func_JTv_psiyTtimesv(u_i,x_i,y_i,p_i,dgamma);
     end
+    
     % update
     uNew(:,i)      = u(:,i) - du;
     yNew(:,i)      = y_i    - dy;

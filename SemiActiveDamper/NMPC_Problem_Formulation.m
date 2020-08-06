@@ -34,7 +34,7 @@ L    =  0.5*(OCP.x-xRef).'*Q*(OCP.x-xRef)...
 G = [d;...
      1 - d];
  
-% psi(xN,yN,pN) = 0 (terminal constraint)
+% psi(uN,xN,yN,pN) = 0 (terminal constraint)
 psi = [];
 %%
 OCP.set('L',L);

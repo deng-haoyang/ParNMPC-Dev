@@ -68,7 +68,7 @@ G = [OCP.u(1:4) + [0;1;1;1];...
      Alpha + slack + 0.2;...
     -Alpha + slack + 0.2];
 
-% psi(xN,yN,pN) = 0 (terminal constraint)
+% psi(uN,xN,yN,pN) = 0 (terminal constraint)
 psi = [];
 %%
 OCP.set('L',L);

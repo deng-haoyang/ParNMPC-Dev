@@ -31,7 +31,7 @@ Y = -func_h(u(:,1),x0,p(:,1));
 G =  func_G(u(:,1),x0,Y,p(:,1));
 yDim  = length(Y);
 zDim  = length(G);
-psi   = func_psi(x0,Y,p(:,1));
+psi   = func_psi(u(:,1),x0,Y,p(:,1));
 psiDim  = length(psi);
 % y
 if isfield(solution,'y')

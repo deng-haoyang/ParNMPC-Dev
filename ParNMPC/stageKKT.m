@@ -28,8 +28,10 @@ couplingNext = -func_Phiu_Bar(WNext,uNext,u,rho).';
 HuT = HuT + couplingPrev + couplingNext;
 
 if stageNum == N
-    psixTtimesgamma = func_JTv_psixTtimesv(x,y,p,gamma);
-    psiyTtimesgamma = func_JTv_psiyTtimesv(x,y,p,gamma);
+    psiuTtimesgamma = func_JTv_psiuTtimesv(u,x,y,p,gamma);
+    psixTtimesgamma = func_JTv_psixTtimesv(u,x,y,p,gamma);
+    psiyTtimesgamma = func_JTv_psiyTtimesv(u,x,y,p,gamma);
+    HuT = HuT + psiuTtimesgamma;
     HxT = HxT + psixTtimesgamma;
     HyT = HyT + psiyTtimesgamma;        
 end

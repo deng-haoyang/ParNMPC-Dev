@@ -6,8 +6,6 @@ function set(OCP,varargin)
     UXP_parIdx = {OCP.u;OCP.x;OCP.p;parIdx};
     % UXYP
     UXYP = {OCP.u;OCP.x;OCP.y;OCP.p};
-    % XYP
-    XYP = {OCP.x;OCP.y;OCP.p};
     switch field
         % functions
         case 'L'
@@ -106,7 +104,7 @@ function set(OCP,varargin)
             end
             matlabFunction(OCP.func.psi,...
                 'File',[OCP.path.funcgen,'/func_psi'],...
-                'Vars',XYP,...
+                'Vars',UXYP,...
                 'Outputs',{'psi'},...
                 'Optimize',true);
         case 'W'
