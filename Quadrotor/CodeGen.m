@@ -5,7 +5,7 @@ solverOptions.T      = 1;
 solverOptions.N      = 20;
 %% initial guess 
 % initial state
-x0 = [0,0,0,0,0,0,0,0,0].';
+x0 = [1,0,1,0,1,0,0,0,0].';
 
 % parameters
 yref = [0,0,0].';
@@ -14,7 +14,7 @@ p(1:3,:) = repmat(yref,[1,solverOptions.N]);
 p(end,:)  = 0.1; % W
 % accurate initial guess
 solution = [];
-solution.u = [0,0,0,0,0].';
+solution.u = [g,0,0,0,0.1].';
 solution.x = [x0,zeros(OCP.dim.x,1)];
 solution = solutionInterp(x0,p,solution);
 [solution,output] = NMPC_Solve(x0,p,solution,solverOptions);
