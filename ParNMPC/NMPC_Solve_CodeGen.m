@@ -1,10 +1,10 @@
 function NMPC_Solve_CodeGen(OCP,solverOptions,codegenOptions)
 uDim = OCP.dim.u;
 xDim = OCP.dim.x;
+yDim = OCP.dim.y;
 pDim = OCP.dim.p;
 GDim = OCP.dim.G;
-
-yDim = OCP.dim.y;
+psiDim = OCP.dim.psi;
 N = solverOptions.N;
 
 if isempty(codegenOptions.x0_init)
@@ -21,15 +21,16 @@ if isempty(codegenOptions.solution_init)
     solution.u = zeros(uDim,N);
     solution.x = zeros(xDim,N);
     solution.y = zeros(yDim,N);
+    solution.s      = ones(GDim,N);
     solution.mul_f = zeros(xDim,N);
     solution.mul_h = zeros(yDim,N);
-    solution.mul_G = zeros(GDim,N);
-    solution.s = ones(GDim,N);
+    solution.mul_G = ones(GDim,N);
+    solution.mul_psi = zeros(psiDim,1);
 else
     solution = codegenOptions.solution_init;
-    % interpolation
-    solution = solutionInterp(x0,p,solution);
 end
+% interpolation
+solution = solutionInterp(x0,p,solution);
 %% generate source files for NMPC_Solve
 args = {x0,p,solution,solverOptions};
 globals = {'timing', coder.Constant(solverOptions.timing),...

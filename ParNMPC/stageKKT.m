@@ -1,6 +1,6 @@
 function [L,F,Y,G,Fu,Fx,Yu,Yx,HuT,HxT,HyT] = ...
-    stageKKT(u,x,y,p,lambda,omega,z,W,uPrev,uNext,WNext,...
-          dt,integrator,rho,parIdx,stateNum)
+    stageKKT(u,x,y,p,lambda,omega,z,gamma,W,uPrev,uNext,WNext,...
+          dt,integrator,rho,parIdx,stageNum,N)
 
 % func eval
 L =  func_L(u,x,y,p);
@@ -14,14 +14,12 @@ G =  func_G(u,x,y,p);
 Yu = -hu;
 Yx = -hx;
 
-
-
-% Reduced KKT 
+% KKT 
 HuT = LGu.' + (lambda.'*Fu).' + (omega.'*Yu).'; 
 HxT = LGx.' + (lambda.'*Fx).' + (omega.'*Yx).'; 
 HyT = LGy.' +  omega;
 % [uDim,~] = size(u);
-% if stateNum == 1
+% if stageNum == 1
 %     couplingPrev = zeros(uDim,1);
 % else
     couplingPrev =  func_Phiu_Bar(W,u,uPrev,rho).';
@@ -29,3 +27,9 @@ HyT = LGy.' +  omega;
 couplingNext = -func_Phiu_Bar(WNext,uNext,u,rho).';
 HuT = HuT + couplingPrev + couplingNext;
 
+if stageNum == N
+    psixTtimesgamma = func_JTv_psixTtimesv(x,y,p,gamma);
+    psiyTtimesgamma = func_JTv_psiyTtimesv(x,y,p,gamma);
+    HxT = HxT + psixTtimesgamma;
+    HyT = HyT + psiyTtimesgamma;        
+end

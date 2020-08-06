@@ -1,4 +1,4 @@
-function KKT = checkKKT(x0,u0,p,u,x,y,lambda,omega,z,s,rho,dt,integrator) %#codegen
+function KKT = checkKKT(x0,u0,p,u,x,y,lambda,omega,z,gamma,s,rho,dt,integrator) %#codegen
     [xDim,N] = size(x);
     [uDim,~] = size(u);
     %% init output
@@ -35,8 +35,8 @@ function KKT = checkKKT(x0,u0,p,u,x,y,lambda,omega,z,s,rho,dt,integrator) %#code
 
         % KKT
         [L,F,Y,G,~,~,~,~,HuT,HxT,HyT] = ...
-        stageKKT(u_i,x_i,y_i,p_i,lambda_i,omega_i,z_i,W_i,uPrev_i,uNext_i,WNext_i,...
-              dt,integrator,rho,parIdx,i);
+        stageKKT(u_i,x_i,y_i,p_i,lambda_i,omega_i,z_i,gamma,W_i,uPrev_i,uNext_i,WNext_i,...
+              dt,integrator,rho,parIdx,i,N);
         % KKT
         KKT.L(1,i)        = L;
         KKT.xEq(1,i)      = norm(xPrev_i + F,      Inf);

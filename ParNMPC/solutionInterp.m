@@ -31,8 +31,8 @@ Y = -func_h(u(:,1),x0,p(:,1));
 G =  func_G(u(:,1),x0,Y,p(:,1));
 yDim  = length(Y);
 zDim  = length(G);
-
-
+psi   = func_psi(x0,Y,p(:,1));
+psiDim  = length(psi);
 % y
 if isfield(solution,'y')
     if isempty(solution.y)
@@ -88,13 +88,25 @@ else
     lambda = ones(xDim,N);
 end
 
+% psi
+if isfield(solution,'mul_psi')
+    if isempty(solution.mul_psi)
+        gamma = ones(psiDim,1);
+    else
+        gamma = interpolation(solution.mul_psi,1);
+    end
+else
+    gamma = ones(psiDim,1);
+end
+
 solutionN.u     = u;
 solutionN.x     = x;
 solutionN.y     = y;
+solutionN.s     = s;
 solutionN.mul_f = lambda;
 solutionN.mul_h = omega;
 solutionN.mul_G = z;
-solutionN.s     = s;
+solutionN.mul_psi = gamma;
 end
 
 function x_N = interpolation(x_in,N)

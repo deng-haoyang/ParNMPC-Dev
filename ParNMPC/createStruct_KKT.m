@@ -7,6 +7,7 @@ KKT.Hu       = zeros(1,N); % u opt
 KKT.lambdaEq = zeros(1,N); % x opt
 KKT.Hy       = zeros(1,N); % y opt
 KKT.rhoEq    = zeros(1,N); % s opt
+KKT.psi      = zeros(1,1); % psi
 coder.cstructname(KKT,'KKTStruct'); 
 end
 

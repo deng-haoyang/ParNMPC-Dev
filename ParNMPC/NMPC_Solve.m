@@ -24,6 +24,7 @@ reg_eta_x             = options.reg_eta_x;
 reg_eta_y             = options.reg_eta_y;
 reg_gamma             = options.reg_gamma;
 reg_beta              = options.reg_beta;
+reg_psi               = options.reg_psi;
 checkKKTAferIteration = options.checkKKTAferIteration;
 tStart                = Timer(timing); % start tic
 %% init outputs
@@ -39,11 +40,12 @@ output = createStruct_output(uDim,xDim);
 %% unpack
 u      = solution.u;
 x      = solution.x;
-y      = solution.y; % 
+y      = solution.y;
+s      = solution.s;
 lambda = solution.mul_f;
-omega  = solution.mul_h; %
-z      = solution.mul_G; %
-s      = solution.s; %
+omega  = solution.mul_h;
+z      = solution.mul_G;
+gamma  = solution.mul_psi;
 %% Check feasibility
 % s
 if sum(s(:)<=0)
@@ -79,24 +81,24 @@ sens_du1dx0 = zeros(uDim,xDim);
 sens_du1du0 = zeros(uDim,uDim);
 for iter=1:maxIterations
     % regularization
-    reg.u  = reg_min_u + reg_eta_u*min(1,KKT_uOpt)^reg_beta * iter^(-reg_gamma);
-    reg.x  = reg_min_x + reg_eta_x*min(1,KKT_xOpt)^reg_beta * iter^(-reg_gamma);
-    reg.y  = reg_min_y + reg_eta_y*min(1,KKT_yOpt)^reg_beta * iter^(-reg_gamma);
-    
+    reg.u   = reg_min_u + reg_eta_u*min(1,KKT_uOpt)^reg_beta * iter^(-reg_gamma);
+    reg.x   = reg_min_x + reg_eta_x*min(1,KKT_xOpt)^reg_beta * iter^(-reg_gamma);
+    reg.y   = reg_min_y + reg_eta_y*min(1,KKT_yOpt)^reg_beta * iter^(-reg_gamma);
+    reg.psi = reg_psi;
     % iteration
-    [u,x,y,lambda,omega,z,s,sens_du1dx0,sens_du1du0,KKT,~] = NMPC_Solve_Iter(x0,u0,p,u,x,y,lambda,omega,z,s,rho,dt,...
+    [u,x,y,lambda,omega,z,gamma,s,sens_du1dx0,sens_du1du0,KKT,~] = NMPC_Solve_Iter(x0,u0,p,u,x,y,lambda,omega,z,gamma,s,rho,dt,...
                                                reg,integrator,timing);
     % callback function after each iteration
     % TODO
     
     % Check KKT
     if checkKKTAferIteration
-        KKT = checkKKT(x0,u0,p,u,x,y,lambda,omega,z,s,rho,dt,integrator);
+        KKT = checkKKT(x0,u0,p,u,x,y,lambda,omega,z,gamma,s,rho,dt,integrator);
     end
     
     cost       = sum(KKT.L);
     iterations = iter;
-    KKT_eq     = max([norm(KKT.xEq,Inf),norm(KKT.yEq,Inf)]);
+    KKT_eq     = max([norm(KKT.xEq,Inf),norm(KKT.yEq,Inf),KKT.psi]);
     KKT_ineq   = max(norm(KKT.sEq,Inf));
     KKT_uOpt   = norm(KKT.Hu,Inf);
     KKT_xOpt   = norm(KKT.lambdaEq,Inf);
@@ -142,10 +144,11 @@ end
 solution.u     = u;
 solution.x     = x;
 solution.y     = y;
+solution.s     = s;
 solution.mul_f = lambda;
 solution.mul_h = omega;
 solution.mul_G = z;
-solution.s     = s;
+solution.mul_psi = gamma; 
 
 tEnd = Timer(timing);
 cpuTime = tEnd - tStart;

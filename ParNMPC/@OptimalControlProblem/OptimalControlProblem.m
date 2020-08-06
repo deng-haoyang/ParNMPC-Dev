@@ -8,7 +8,7 @@ classdef OptimalControlProblem < handle
       path
       % dim.[u,x,y,p,f,h,G]
       dim
-      % L f h G
+      % L f h G psi
       func
       % var
       u
@@ -36,20 +36,22 @@ classdef OptimalControlProblem < handle
         
         OCP.dim.f = xDim;
         OCP.dim.h = yDim;
-        OCP.dim.G = 0;
+        OCP.dim.G   = 0;
+        OCP.dim.psi = 0;
         
         % init func
         OCP.func.L = [];
         OCP.func.f = [];
         OCP.func.h = [];
         OCP.func.G = [];
+        OCP.func.psi = [];
         
         % init variables
         OCP.u = sym('u',[OCP.dim.u,1]);
         OCP.x = sym('x',[OCP.dim.x,1]);
         OCP.y = sym('y',[OCP.dim.y,1]);
         OCP.p = sym('p',[OCP.dim.p,1]);
-
+        
         % du
         OCP.W     =  zeros(OCP.dim.u,1);
         OCP.duMax =  Inf*ones(OCP.dim.u,1);

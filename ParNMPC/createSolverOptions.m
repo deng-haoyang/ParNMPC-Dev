@@ -32,15 +32,18 @@ options.barrierParam = 1e-2;
 % Hessian approximation (TB)
 options.hessian = [];
 
-% static regularization parameters
+% static regularization parameters for Hessian
 options.reg_min_u = 1e-7;
 options.reg_min_x = 1e-7;
 options.reg_min_y = 1e-7;
-options.reg_eta_u = 1e-4;
-options.reg_eta_x = 1e-4;
-options.reg_eta_y = 1e-4;
+options.reg_eta_u = 1e-3;
+options.reg_eta_x = 1e-3;
+options.reg_eta_y = 1e-3;
 options.reg_gamma = 1/3;
 options.reg_beta  = 0.8;
+
+% static regularization parameter for psi (terminal constraint)
+options.reg_psi   = 1e-8;
 
 % tolerance
 options.tol_eq         = 1e-2;

@@ -51,11 +51,15 @@ G = [tau + 50;...
      slack;...  
      qdot + pi/2  + slack;...
     -qdot + pi/2  + slack];
+
+% psi(xN,yN,pN) = 0 (terminal constraint)
+psi = [];
 %%
 OCP.set('L',L);
 OCP.set('f',f);
 OCP.set('h',h);
 OCP.set('G',G);
+OCP.set('psi',psi);
 OCP.set('W',duW*ones(OCP.dim.u,1));
 OCP.generateDerivatives('Hessian','L'); % 'Sparse',false,'Optimize',true
 

@@ -33,10 +33,14 @@ L    =  0.5*(OCP.x-xRef).'*Q*(OCP.x-xRef)...
 % G(u,x,y,p) > 0
 G = [d;...
      1 - d];
+ 
+% psi(xN,yN,pN) = 0 (terminal constraint)
+psi = [];
 %%
 OCP.set('L',L);
 OCP.set('f',f);
 OCP.set('h',h);
 OCP.set('G',G);
+OCP.set('psi',psi);
 OCP.set('W',10*ones(OCP.dim.u,1)); % cost on input rate 
 OCP.generateDerivatives('Hessian','LfGh'); % 'Sparse',false,'Optimize',true

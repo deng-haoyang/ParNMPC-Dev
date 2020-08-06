@@ -67,10 +67,15 @@ G = [OCP.u(1:4) + [0;1;1;1];...
     -Beta  + slack + 0.2;...
      Alpha + slack + 0.2;...
     -Alpha + slack + 0.2];
+
+% psi(xN,yN,pN) = 0 (terminal constraint)
+psi = [];
 %%
 OCP.set('L',L);
 OCP.set('f',f);
 OCP.set('h',h);
 OCP.set('G',G);
+OCP.set('psi',psi);
 OCP.set('W',duW*[1 10 10 10 0].');
+
 OCP.generateDerivatives('Hessian','Lf'); % 'Sparse',false,'Optimize',true

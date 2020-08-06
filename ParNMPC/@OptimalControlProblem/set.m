@@ -6,6 +6,8 @@ function set(OCP,varargin)
     UXP_parIdx = {OCP.u;OCP.x;OCP.p;parIdx};
     % UXYP
     UXYP = {OCP.u;OCP.x;OCP.y;OCP.p};
+    % XYP
+    XYP = {OCP.x;OCP.y;OCP.p};
     switch field
         % functions
         case 'L'
@@ -92,6 +94,21 @@ function set(OCP,varargin)
                 'Vars',UXYP,...
                 'Outputs',{'G'},...
                 'Optimize',true);
+        case 'psi'
+            psi = value;
+            psiDim = length(psi);
+
+            OCP.dim.psi  = psiDim;
+            if psiDim == 0
+               OCP.func.psi = sym(zeros(0,1));
+            else
+               OCP.func.psi = formula(psi);
+            end
+            matlabFunction(OCP.func.psi,...
+                'File',[OCP.path.funcgen,'/func_psi'],...
+                'Vars',XYP,...
+                'Outputs',{'psi'},...
+                'Optimize',true);
         case 'W'
             W = value;
             OCP.W = W;
@@ -101,6 +118,7 @@ function set(OCP,varargin)
         case 'duMin'
             duMin = value;
             OCP.duMin = duMin;
+
         otherwise
             error([field ' is not a recognized parameter.']);
     end
