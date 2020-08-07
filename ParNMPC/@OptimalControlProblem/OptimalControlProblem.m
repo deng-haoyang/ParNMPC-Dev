@@ -1,12 +1,12 @@
 classdef OptimalControlProblem < handle
    properties (Constant)
-       version = '2007-1';
+       version = 'Dev-1';
    end
    properties (SetAccess = private)
       % 
       projectName
       path
-      % dim.[u,x,y,p,f,h,G]
+      % dim.[u,x,y,p,f,h,G,psi]
       dim
       % L f h G psi
       func
@@ -19,6 +19,8 @@ classdef OptimalControlProblem < handle
       W
       duMax
       duMin
+      % Hessian
+      Hessian
    end
    methods
       function OCP = OptimalControlProblem(projectName,...
@@ -57,6 +59,11 @@ classdef OptimalControlProblem < handle
         OCP.duMax =  Inf*ones(OCP.dim.u,1);
         OCP.duMin = -Inf*ones(OCP.dim.u,1);
         
+        % Hessian
+        OCP.Hessian.value = 'Lfh';
+        OCP.Hessian.sparse = false;
+        OCP.Hessian.optimize = true;
+
         % matlab function generation path
         funcgenPath = ['./',projectName,'_func'];
         [~,~,~] = mkdir(funcgenPath);

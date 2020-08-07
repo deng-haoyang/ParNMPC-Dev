@@ -39,6 +39,9 @@ globals = {'timing', coder.Constant(solverOptions.timing),...
 targetLang              = upper(codegenOptions.targetLang);
 supportNonFinite        = codegenOptions.supportNonFinite;
 dynamicMemoryAllocation = codegenOptions.dynamicMemoryAllocation;
+if OCP.Hessian.sparse
+    dynamicMemoryAllocation = 'Threshold';
+end
 generateReport          = codegenOptions.generateReport;
 isCppNamespace          = codegenOptions.cppNamespace;
 % mex
@@ -211,6 +214,12 @@ if buildMEXInterface
     else
         cfg_mex.CustomSource  = [OCP.path.codegen,'/NMPC_Solve.',srcType, pathsep, OCP.path.codegen,'/',timerSrc];
     end
+    switch dynamicMemoryAllocation
+        case 'Threshold'
+        cfg_mex.CustomSource = [cfg_mex.CustomSource,pathsep,...
+                               OCP.path.codegen,'/NMPC_Solve_emxutil.',srcType];
+    end
+
     try
         codegen -config cfg_mex -args args NMPC_Solve_Wrapper
         disp('Done! MEX interface has been successfully generated as NMPC_Solve_Wrapper_mex!');

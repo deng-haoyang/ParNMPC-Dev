@@ -30,6 +30,7 @@ function set(OCP,varargin)
                 end
             else
                 OCP.func.f = formula(f);
+                assert(OCP.dim.x==length(OCP.func.f),['Function f is supposed to have dimensions of ', num2str(OCP.dim.x),'.']);
                 matlabFunction(OCP.func.f,...
                     'File',[OCP.path.funcgen,'/func_f'],...
                     'Vars',UXP_parIdx,...
@@ -54,29 +55,8 @@ function set(OCP,varargin)
                 else
                    OCP.func.h = formula(h);
                 end
-                matlabFunction(OCP.func.h,...
-                    'File',[OCP.path.funcgen,'/func_h'],...
-                    'Vars',UXP_parIdx,...
-                    'Outputs',{'h'},...
-                    'Optimize',true);
-            end
-        case 'C'
-            C = value;
-            CDim = length(C);
-            
-            OCP.dim.C  = CDim;
-            OCP.multiplier.C = sym('mu',[CDim,1]);
-            if CDim == 0
-               OCP.func.C = sym(zeros(0,1));
-            else
-               OCP.func.C = formula(C);
-            end
-            matlabFunction(OCP.func.C,...
-                'File',[OCP.path.funcgen,'/func_C'],...
-                'Vars',UXYP,...
-                'Outputs',{'C'},...
-                'Optimize',true);
-            
+                assert(OCP.dim.y==length(OCP.func.h),['Function y is supposed to have dimensions of ', num2str(OCP.dim.y),'.']);
+            end            
         case 'G'
             G = value;
             GDim = length(G);
@@ -87,11 +67,6 @@ function set(OCP,varargin)
             else
                OCP.func.G = formula(G);
             end
-            matlabFunction(OCP.func.G,...
-                'File',[OCP.path.funcgen,'/func_G'],...
-                'Vars',UXYP,...
-                'Outputs',{'G'},...
-                'Optimize',true);
         case 'psi'
             psi = value;
             psiDim = length(psi);
@@ -102,11 +77,6 @@ function set(OCP,varargin)
             else
                OCP.func.psi = formula(psi);
             end
-            matlabFunction(OCP.func.psi,...
-                'File',[OCP.path.funcgen,'/func_psi'],...
-                'Vars',UXYP,...
-                'Outputs',{'psi'},...
-                'Optimize',true);
         case 'W'
             W = value;
             OCP.W = W;

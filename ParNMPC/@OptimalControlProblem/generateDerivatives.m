@@ -1,9 +1,12 @@
 function generateDerivatives(OCP,varargin)
 nParam = length(varargin);
 % default parameters
-isOptimize = true;
-isSparse   = false;
-hessianMethod = 'Lfh';
+defaultHessian  = 'Lfh';
+defaultSparse   = false;
+defaultOptimize = true;
+isOptimize    = defaultOptimize;
+isSparse      = defaultSparse;
+hessianMethod = defaultHessian;
 for i=1:1:nParam/2
     j = i*2-1;
     field = varargin{j};
@@ -11,24 +14,62 @@ for i=1:1:nParam/2
     switch field
         case 'Optimize'
             isOptimize = value;
+            assert(islogical(isOptimize),'''Optimize'' is not a logical value.')
         case 'Sparse'
             isSparse   = value;
+            assert(islogical(isSparse),'''Sparse'' is not a logical value.')
         case 'Hessian'
             hessianMethod = value;
-            if ~ischar(hessianMethod)
-                error([field ' is not a character array.']);
-            end
+            assert(ischar(hessianMethod),[field ' is not a character array.'])
         otherwise
             error([field ' is not a recognized parameter.']);
     end
 end
+OCP.Hessian.value    = hessianMethod;
+OCP.Hessian.sparse   = isSparse;
+OCP.Hessian.optimize = isOptimize;
+% check parameters
+assert(OCP.dim.y==length(OCP.func.h),['Function y is supposed to have dimensions of ', num2str(OCP.dim.y),'.']);
+%% Generate functions 
+parIdx = sym('parIdx',[1,1]);
+UXP_parIdx = {OCP.u;OCP.x;OCP.p;parIdx};
+UXYP        = {OCP.u;OCP.x;OCP.y;OCP.p};
+
+% h
+if OCP.dim.h == 0
+   OCP.func.h = sym(zeros(0,1));
+end
+matlabFunction(OCP.func.h,...
+    'File',[OCP.path.funcgen,'/func_h'],...
+    'Vars',UXP_parIdx,...
+    'Outputs',{'h'},...
+    'Optimize',isOptimize,'Sparse',false);
+% G
+if OCP.dim.G == 0
+   OCP.func.G = sym(zeros(0,1));
+end
+matlabFunction(OCP.func.G,...
+    'File',[OCP.path.funcgen,'/func_G'],...
+    'Vars',UXYP,...
+    'Outputs',{'G'},...
+    'Optimize',isOptimize,'Sparse',false);
+% psi
+if OCP.dim.psi == 0
+   OCP.func.psi = sym(zeros(0,1));
+end
+matlabFunction(OCP.func.psi,...
+    'File',[OCP.path.funcgen,'/func_psi'],...
+    'Vars',UXYP,...
+    'Outputs',{'psi'},...
+    'Optimize',isOptimize,'Sparse',false);
+%%
 lambda = sym('lambda',[OCP.dim.x,1]); % mul_f
 omega  = sym('omega',[OCP.dim.y,1]);  % mul_h
 z      = sym('z',[OCP.dim.G,1]);  % mul_G
 s      = sym('s',[OCP.dim.G,1]); % G = s
 rho    = sym('rho',[1,1]); % barrier parameter
 dt     = sym('dt',[1,1]); % dt = T/N
-%%
+
 showInfo(OCP);
 disp(['Hessian contains (cost L, dynamics f, output h, ineq G): ',hessianMethod]);
 if isOptimize
@@ -52,10 +93,8 @@ matlabFunction(LGu,LGx,LGy,...
     'File',[OCP.path.funcgen,'/func_Jacobian_LGu_LGx_LGy'],...
     'Vars',UXYZP,...
     'Outputs',{'LGu','LGx','LGy'},...
-    'Optimize',isOptimize);
+    'Optimize',isOptimize,'Sparse',isSparse);
 %% f(u,x,p,parIdx)
-parIdx = sym('parIdx',[1,1]);
-UXP_parIdx = {OCP.u;OCP.x;OCP.p;parIdx};
 if isa(OCP.func.f,'char')
     isExist = exist([OCP.path.funcgen,'/func_Jacobian_fu_fx.m'],'file');
     if isExist ~= 2
@@ -74,8 +113,8 @@ else
         'Optimize',isOptimize,'Sparse',isSparse);
 end
 %% h(u,x,p,parIdx)
-Yu = sym('Yu',[OCP.dim.y,OCP.dim.u]);
-Yx = sym('Yx',[OCP.dim.y,OCP.dim.x]);
+Yu_sym = sym('Yu',[OCP.dim.y,OCP.dim.u]);
+Yx_sym = sym('Yx',[OCP.dim.y,OCP.dim.x]);
 if isa(OCP.func.h,'char')
     isExist = exist([OCP.path.funcgen,'/func_Jacobian_hu_hx.m'],'file');
     if isExist ~= 2
@@ -84,18 +123,18 @@ if isa(OCP.func.h,'char')
     else
         disp([OCP.path.funcgen,'/func_Jacobian_hu_hx.m already exists and will be kept']);
     end
-    Yu_val = Yu;
-    Yx_val = Yx;
+    Yu = Yu_sym;
+    Yx = Yx_sym;
 else
     hu = jacobian(OCP.func.h,OCP.u);
     hx = jacobian(OCP.func.h,OCP.x);
-    Yu_val = -hu;
-    Yx_val = -hx;
+    Yu = -hu;
+    Yx = -hx;
     matlabFunction(hu,hx,...
         'File',[OCP.path.funcgen,'/func_Jacobian_hu_hx'],...
         'Vars',UXP_parIdx,...
         'Outputs',{'hu','hx'},...
-        'Optimize',isOptimize,'Sparse',isSparse);
+        'Optimize',isOptimize,'Sparse',false);
 end
 %% G(u,x,y,p)
 Gu = jacobian(OCP.func.G,OCP.u);
@@ -141,11 +180,11 @@ matlabFunction(GyTtimesv,...
 psiu = jacobian(OCP.func.psi,OCP.u);
 psix = jacobian(OCP.func.psi,OCP.x);
 psiy = jacobian(OCP.func.psi,OCP.y);
-psix_Bar = psix - psiy*Yx_val;
-psiu_Bar = psiu - psiy*Yu_val;
+psix_Bar = psix - psiy*Yx;
+psiu_Bar = psiu - psiy*Yu;
 
 % psix_Bar
-vars = {OCP.u;OCP.x;OCP.y;OCP.p;Yx};
+vars = {OCP.u;OCP.x;OCP.y;OCP.p;Yx_sym};
 matlabFunction(psix_Bar,...
     'File',[OCP.path.funcgen,'/func_psix_m_psiyYx'],...
     'Vars',vars,...
@@ -153,7 +192,7 @@ matlabFunction(psix_Bar,...
     'Optimize',isOptimize,'Sparse',isSparse);
 
 % psiu_Bar
-vars = {OCP.u;OCP.x;OCP.y;OCP.p;Yu};
+vars = {OCP.u;OCP.x;OCP.y;OCP.p;Yu_sym};
 matlabFunction(psiu_Bar,...
     'File',[OCP.path.funcgen,'/func_psiu_m_psiyYu'],...
     'Vars',vars,...
@@ -266,16 +305,16 @@ Hyy = jacobian(Hy,OCP.y) + delta_y*eye(OCP.dim.y); % with reglarization
 Hyx = Hxy.';
 
 % Auu_j_i + Gu_j_i.'*(z_j_i./G_j_i.*Gu_j_i);
-Huu_Bar = Huu + Gu.'*Sigma*Gu - Huy*Yu_val - (Huy*Yu_val).'...
-              - Gu.'*Sigma*Gy*Yu_val - (Gu.'*Sigma*Gy*Yu_val).'...
-              + Yu_val.'*(Hyy + Gy.'*Sigma*Gy)*Yu_val;
-Hxx_Bar = Hxx + Gx.'*Sigma*Gx - Hxy*Yx_val - (Hxy*Yx_val).'...
-              - Gx.'*Sigma*Gy*Yx_val - (Gx.'*Sigma*Gy*Yx_val).'...
-              + Yx_val.'*(Hyy + Gy.'*Sigma*Gy)*Yx_val;
-Hxu_Bar = Hxu + Gx.'*Sigma*Gu - (Hxy + Gx.'*Sigma*Gy)*Yu_val...
-              - Yx_val.'*(Hyu+Gy.'*Sigma*Gu - (Hyy + Gy.'*Sigma*Gy)*Yu_val);
+Huu_Bar = Huu + Gu.'*Sigma*Gu - Huy*Yu - (Huy*Yu).'...
+              - Gu.'*Sigma*Gy*Yu - (Gu.'*Sigma*Gy*Yu).'...
+              + Yu.'*(Hyy + Gy.'*Sigma*Gy)*Yu;
+Hxx_Bar = Hxx + Gx.'*Sigma*Gx - Hxy*Yx - (Hxy*Yx).'...
+              - Gx.'*Sigma*Gy*Yx - (Gx.'*Sigma*Gy*Yx).'...
+              + Yx.'*(Hyy + Gy.'*Sigma*Gy)*Yx;
+Hxu_Bar = Hxu + Gx.'*Sigma*Gu - (Hxy + Gx.'*Sigma*Gy)*Yu...
+              - Yx.'*(Hyu+Gy.'*Sigma*Gu - (Hyy + Gy.'*Sigma*Gy)*Yu);
 vars = {OCP.u;OCP.x;OCP.y;OCP.p;...
-        lambda;omega;z;s;rho;dt;delta_u;delta_x;delta_y;Yu;Yx};
+        lambda;omega;z;s;rho;dt;delta_u;delta_x;delta_y;Yu_sym;Yx_sym};
 matlabFunction(Hxx_Bar,Hxu_Bar,Huu_Bar,...
     'File',[OCP.path.funcgen,'/func_Hessian_Hxx_Hxu_Huu_Bar'],...
     'Vars',vars,...
@@ -314,10 +353,10 @@ matlabFunction(Hyytimesv,...
     'Outputs',{'Hyytimesv'},...
     'Optimize',isOptimize,'Sparse',false);
 %% Coefficient matrix times v
-CM_Hu_GrhoZe = (Gu.' - Yu_val.'*Gy.')*Sigma;
-CM_Klambda_GrhoZe = (Gx.' - Yx_val.'*Gy.')*Sigma;
-CM_Hu_yY     = Yu_val.'*(Hyy + Gy.'*Sigma*Gy) - Huy - Gu.'*Sigma*Gy;
-CM_Klambda_yY     = Yx_val.'*(Hyy + Gy.'*Sigma*Gy) - Hxy - Gx.'*Sigma*Gy;
+CM_Hu_GrhoZe = (Gu.' - Yu.'*Gy.')*Sigma;
+CM_Klambda_GrhoZe = (Gx.' - Yx.'*Gy.')*Sigma;
+CM_Hu_yY     = Yu.'*(Hyy + Gy.'*Sigma*Gy) - Huy - Gu.'*Sigma*Gy;
+CM_Klambda_yY     = Yx.'*(Hyy + Gy.'*Sigma*Gy) - Hxy - Gx.'*Sigma*Gy;
 %
 v = sym('v',[OCP.dim.G,1]);
 vars = {OCP.u;OCP.x;OCP.y;OCP.p;...
@@ -332,7 +371,7 @@ matlabFunction(CM_Hu_GrhoZe_timesv,CM_Klambda_GrhoZe_timesv,...
 %
 v = sym('v',[OCP.dim.y,1]);
 vars = {OCP.u;OCP.x;OCP.y;OCP.p;...
-        lambda;omega;z;s;rho;dt;delta_y;Yu;Yx;v};
+        lambda;omega;z;s;rho;dt;delta_y;Yu_sym;Yx_sym;v};
 CM_Hu_yY_timesv      = CM_Hu_yY*v;
 CM_Klambda_yY_timesv = CM_Klambda_yY*v;
 matlabFunction(CM_Hu_yY_timesv,CM_Klambda_yY_timesv,...
